@@ -1,0 +1,27 @@
+[package]
+name = "avap-isa"
+version = "0.1.0"
+edition = "2021"
+description = "AVAP language instruction set for the Platon kernel"
+license = "MIT"
+
+[lib]
+name = "avap_isa"
+crate-type = ["cdylib", "rlib"] 
+
+[dependencies]
+platon-core = { path = "../PLATON/platon-core" }
+pyo3 = { version = "0.22", features = ["extension-module"] }
+
+[build-dependencies]
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[[test]]                   
+name = "integration"
+path = "tests/integration.rs"

@@ -1,0 +1,1 @@
+/build/avap-isa/target/release/libavap_isa.so: /build/PLATON/platon-core/src/lib.rs /build/avap-isa/build.rs /build/avap-isa/opcodes.json /build/avap-isa/src/lib.rs /build/avap-isa/target/release/build/avap-isa-3c547d40eedba28f/out/opcodes.rs

@@ -1,0 +1,566 @@
+{
+  "language": "AVAP",
+  "version": "1.0.0",
+  "description": "AVAP (API Value Access Protocol) command language for building API logic as composable, bytecode-compiled commands.",
+  "parameter_types": {
+    "variable": "Name of a runtime variable stored in conector.variables",
+    "value": "A literal value or variable reference, resolved at runtime",
+    "var": "Alias for variable — name of a runtime variable"
+  },
+  "commands": [
+    {
+      "name": "addVar",
+      "category": "Variables",
+      "description": "Declares or updates a runtime variable. Performs intelligent type resolution: if varValue is an existing variable name, uses its value; if it is a numeric string, converts to int; otherwise stores as-is.",
+      "parameters": [
+        {
+          "name": "targetVarName",
+          "type": "variable",
+          "description": "Name of the variable to create or update"
+        },
+        {
+          "name": "varValue",
+          "type": "value",
+          "description": "Value to assign — resolved from variables, numeric strings, or literals"
+        }
+      ],
+      "returns": null,
+      "example": "addVar(total, 0)\naddVar(name, \"Alice\")\naddVar(count, existingVar)"
+    },
+    {
+      "name": "addResult",
+      "category": "Variables",
+      "description": "Exports a runtime variable to the API response results object. The variable value is copied from conector.variables to conector.results under the same key.",
+      "parameters": [
+        {
+          "name": "sourceVariable",
+          "type": "variable",
+          "description": "Name of the variable to export as a result"
+        }
+      ],
+      "returns": null,
+      "example": "addVar(total, 42)\naddResult(total)\n# Response: { \"total\": 42 }"
+    },
+    {
+      "name": "addParam",
+      "category": "Variables",
+      "description": "Reads a parameter from the HTTP request (query string, JSON body, or form data) and stores it in a runtime variable. Handles type coercion automatically.",
+      "parameters": [
+        {
+          "name": "param",
+          "type": "value",
+          "description": "Name of the HTTP request parameter to read"
+        },
+        {
+          "name": "variable",
+          "type": "variable",
+          "description": "Runtime variable name to store the value in"
+        }
+      ],
+      "returns": null,
+      "example": "addParam(userId, myVar)\n# reads ?userId=123 → myVar = 123"
+    },
+    {
+      "name": "if",
+      "category": "Control Flow",
+      "description": "Conditional branch. Compares two values using the given comparator. Executes the true branch if the comparison holds, the false branch (else block) otherwise.",
+      "parameters": [
+        {
+          "name": "variable",
+          "type": "variable",
+          "description": "Left-hand side — resolved from conector.variables"
+        },
+        {
+          "name": "variableValue",
+          "type": "variable",
+          "description": "Right-hand side — resolved from conector.variables or used as literal"
+        },
+        {
+          "name": "comparator",
+          "type": "value",
+          "description": "Operator: =, ==, !=, <, >, <=, >="
+        }
+      ],
+      "returns": null,
+      "example": "if(score, threshold, >=)\n  addVar(status, pass)\nelse()\n  addVar(status, fail)\nend()"
+    },
+    {
+      "name": "else",
+      "category": "Control Flow",
+      "description": "Marks the beginning of the false branch of an if block. Must be paired with a preceding if() and a following end().",
+      "parameters": [],
+      "returns": null,
+      "example": "if(x, 0, >)\n  addResult(x)\nelse()\n  addVar(x, 0)\nend()"
+    },
+    {
+      "name": "end",
+      "category": "Control Flow",
+      "description": "Closes an if/else or startLoop block. Required to terminate all branching and loop constructs.",
+      "parameters": [],
+      "returns": null,
+      "example": "if(flag, true, =)\n  addResult(data)\nend()"
+    },
+    {
+      "name": "startLoop",
+      "category": "Loops",
+      "description": "Begins a counted loop. Iterates a variable from a start value to an end value (inclusive), incrementing by 1 each iteration.",
+      "parameters": [
+        {
+          "name": "varName",
+          "type": "variable",
+          "description": "Loop counter variable name"
+        },
+        {
+          "name": "from",
+          "type": "value",
+          "description": "Start value (inclusive) — literal or variable reference"
+        },
+        {
+          "name": "to",
+          "type": "value",
+          "description": "End value (inclusive) — literal or variable reference"
+        }
+      ],
+      "returns": null,
+      "example": "startLoop(i, 1, 10)\n  addVar(counter, i)\nendLoop()"
+    },
+    {
+      "name": "endLoop",
+      "category": "Loops",
+      "description": "Closes a startLoop block.",
+      "parameters": [],
+      "returns": null,
+      "example": "startLoop(i, 0, 5)\n  addResult(i)\nendLoop()"
+    },
+    {
+      "name": "try",
+      "category": "Error Handling",
+      "description": "Begins an error-protected block. Any runtime error within the block is caught and stored in __last_error__. Execution continues after the exception() handler.",
+      "parameters": [],
+      "returns": null,
+      "example": "try()\n  ormDirect(badQuery, result)\nexception(err)\n  addVar(result, query_failed)\nend()"
+    },
+    {
+      "name": "exception",
+      "category": "Error Handling",
+      "description": "Catches an error from a preceding try() block. The error message is stored in the given variable and in __last_error__.",
+      "parameters": [
+        {
+          "name": "error",
+          "type": "var",
+          "description": "Variable name to store the caught error message in"
+        }
+      ],
+      "returns": null,
+      "example": "try()\n  RequestGet(badUrl, , , result)\nexception(errMsg)\n  addVar(status, failed)\nend()"
+    },
+    {
+      "name": "RequestGet",
+      "category": "HTTP",
+      "description": "Performs an HTTP GET request. Raises an exception on 4xx/5xx responses (compatible with try/exception). Parses JSON response automatically.",
+      "parameters": [
+        {
+          "name": "url",
+          "type": "variable",
+          "description": "Request URL — resolved from variable or used as literal"
+        },
+        {
+          "name": "querystring",
+          "type": "variable",
+          "description": "Query parameters — dict variable or empty"
+        },
+        {
+          "name": "headers",
+          "type": "variable",
+          "description": "HTTP headers — dict variable or empty"
+        },
+        {
+          "name": "o_result",
+          "type": "variable",
+          "description": "Variable to store the response body (parsed JSON or text)"
+        }
+      ],
+      "returns": "Response body stored in o_result",
+      "example": "addVar(apiUrl, https://api.example.com/data)\nRequestGet(apiUrl, , , responseData)\naddResult(responseData)"
+    },
+    {
+      "name": "RequestPost",
+      "category": "HTTP",
+      "description": "Performs an HTTP POST request. Automatically detects JSON vs form-encoded body. Parses JSON response automatically.",
+      "parameters": [
+        {
+          "name": "url",
+          "type": "variable",
+          "description": "Request URL"
+        },
+        {
+          "name": "querystring",
+          "type": "variable",
+          "description": "Query parameters — dict variable or empty"
+        },
+        {
+          "name": "headers",
+          "type": "variable",
+          "description": "HTTP headers — dict variable or empty"
+        },
+        {
+          "name": "body",
+          "type": "variable",
+          "description": "Request body — dict (sent as JSON) or string (sent as raw)"
+        },
+        {
+          "name": "o_result",
+          "type": "variable",
+          "description": "Variable to store the response"
+        }
+      ],
+      "returns": "Response body stored in o_result",
+      "example": "AddvariableToJSON(name, Alice, payload)\nRequestPost(apiUrl, , , payload, response)\naddResult(response)"
+    },
+    {
+      "name": "randomString",
+      "category": "Cryptography",
+      "description": "Generates a random string matching a regex pattern with the given length.",
+      "parameters": [
+        {
+          "name": "Pattern",
+          "type": "var",
+          "description": "Regex pattern each character must match (e.g. [A-Za-z0-9])"
+        },
+        {
+          "name": "Length",
+          "type": "var",
+          "description": "Number of characters to generate"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the generated string"
+        }
+      ],
+      "returns": "Random string stored in TargetVariable",
+      "example": "randomString([A-Z0-9], 8, token)"
+    },
+    {
+      "name": "encodeSHA256",
+      "category": "Cryptography",
+      "description": "Computes the SHA-256 hex digest of a string variable.",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "var",
+          "description": "Variable containing the string to hash"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the hex digest"
+        }
+      ],
+      "returns": "SHA-256 hex string stored in TargetVariable",
+      "example": "addVar(password, secret123)\nencodeSHA256(password, hashedPwd)\naddResult(hashedPwd)"
+    },
+    {
+      "name": "encodeMD5",
+      "category": "Cryptography",
+      "description": "Computes the MD5 hex digest of a string variable. Supports backtick template interpolation (e.g. `prefix_${varName}`).",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "var",
+          "description": "Variable or template string to hash"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the hex digest"
+        }
+      ],
+      "returns": "MD5 hex string stored in TargetVariable",
+      "example": "encodeMD5(apiKey, hashedKey)"
+    },
+    {
+      "name": "replace",
+      "category": "String",
+      "description": "Applies a regex substitution to a string variable.",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "variable",
+          "description": "Input string variable"
+        },
+        {
+          "name": "rePattern",
+          "type": "variable",
+          "description": "Regex pattern to match"
+        },
+        {
+          "name": "newValue",
+          "type": "variable",
+          "description": "Replacement string"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "variable",
+          "description": "Variable to store the result"
+        }
+      ],
+      "returns": "Modified string stored in TargetVariable",
+      "example": "replace(rawInput, \\\\s+, _, cleanInput)"
+    },
+    {
+      "name": "getRegex",
+      "category": "String",
+      "description": "Extracts all regex matches from a string and joins them into a single result string.",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "variable",
+          "description": "Input string variable"
+        },
+        {
+          "name": "rePattern",
+          "type": "variable",
+          "description": "Regex pattern to match"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "variable",
+          "description": "Variable to store the joined matches (None if no match)"
+        }
+      ],
+      "returns": "Joined match string or None stored in TargetVariable",
+      "example": "getRegex(emailText, [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+, extractedEmail)"
+    },
+    {
+      "name": "ormDirect",
+      "category": "Database",
+      "description": "Executes a raw SQL query against the configured database connection. For SELECT: stores list of row dicts. For INSERT/UPDATE/DELETE: stores rowcount string. Commits automatically unless in sandbox mode.",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "var",
+          "description": "SQL query string — variable or literal (backtick strings with ${var} interpolation supported)"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store query results"
+        }
+      ],
+      "returns": "List of row dicts (SELECT) or success string (DML) stored in TargetVariable",
+      "example": "addVar(sql, SELECT * FROM users WHERE id = 1)\normDirect(sql, users)\naddResult(users)"
+    },
+    {
+      "name": "getDateTime",
+      "category": "DateTime",
+      "description": "Returns the current date/time formatted as a string or timestamp, with optional timezone and time delta offset.",
+      "parameters": [
+        {
+          "name": "Format",
+          "type": "var",
+          "description": "strftime format string (e.g. %Y-%m-%d). Empty string returns Unix timestamp."
+        },
+        {
+          "name": "TimeDelta",
+          "type": "var",
+          "description": "Seconds to add/subtract from current time (0 for no offset)"
+        },
+        {
+          "name": "TimeZone",
+          "type": "var",
+          "description": "IANA timezone name (e.g. Europe/Madrid) or empty for local"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the result"
+        }
+      ],
+      "returns": "Formatted datetime string or timestamp stored in TargetVariable",
+      "example": "getDateTime(%Y-%m-%dT%H:%M:%S, 0, UTC, now)\naddResult(now)"
+    },
+    {
+      "name": "getTimeStamp",
+      "category": "DateTime",
+      "description": "Converts a date string to a Unix timestamp, with optional time delta offset.",
+      "parameters": [
+        {
+          "name": "DateString",
+          "type": "var",
+          "description": "Input date string to parse"
+        },
+        {
+          "name": "Format",
+          "type": "var",
+          "description": "strftime format of the input string"
+        },
+        {
+          "name": "TimeDelta",
+          "type": "var",
+          "description": "Seconds to add/subtract (0 for none)"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the Unix timestamp (float)"
+        }
+      ],
+      "returns": "Unix timestamp (float) stored in TargetVariable",
+      "example": "getTimeStamp(2026-01-01, %Y-%m-%d, 0, ts)"
+    },
+    {
+      "name": "stampToDatetime",
+      "category": "DateTime",
+      "description": "Converts a Unix timestamp to a formatted datetime string.",
+      "parameters": [
+        {
+          "name": "timestamp",
+          "type": "var",
+          "description": "Variable containing the Unix timestamp (float)"
+        },
+        {
+          "name": "Format",
+          "type": "var",
+          "description": "strftime format for the output string"
+        },
+        {
+          "name": "TimeDelta",
+          "type": "var",
+          "description": "Seconds to add/subtract (0 for none)"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the formatted string"
+        }
+      ],
+      "returns": "Formatted datetime string stored in TargetVariable",
+      "example": "stampToDatetime(myTimestamp, %d/%m/%Y, 0, readableDate)"
+    },
+    {
+      "name": "getQueryParamList",
+      "category": "Request",
+      "description": "Retrieves all query string parameters from the current HTTP request as a list of single-key dicts.",
+      "parameters": [
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the list of parameter dicts"
+        }
+      ],
+      "returns": "List of {param: value} dicts stored in TargetVariable",
+      "example": "getQueryParamList(params)\naddResult(params)"
+    },
+    {
+      "name": "getListLen",
+      "category": "Collections",
+      "description": "Returns the length of a list variable.",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "var",
+          "description": "Variable containing the list"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the integer length"
+        }
+      ],
+      "returns": "Integer length stored in TargetVariable",
+      "example": "getListLen(items, itemCount)\naddResult(itemCount)"
+    },
+    {
+      "name": "itemFromList",
+      "category": "Collections",
+      "description": "Retrieves a single item from a list by index.",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "var",
+          "description": "Variable containing the list"
+        },
+        {
+          "name": "index",
+          "type": "value",
+          "description": "Zero-based integer index (literal or variable)"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the retrieved item"
+        }
+      ],
+      "returns": "List item stored in TargetVariable",
+      "example": "itemFromList(users, 0, firstUser)\naddResult(firstUser)"
+    },
+    {
+      "name": "variableToList",
+      "category": "Collections",
+      "description": "Appends a value to a list variable. Creates the list if it does not exist.",
+      "parameters": [
+        {
+          "name": "element",
+          "type": "variable",
+          "description": "Variable or value to append"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "variable",
+          "description": "List variable to append to"
+        }
+      ],
+      "returns": null,
+      "example": "variableToList(item1, myList)\nvariableToList(item2, myList)\naddResult(myList)"
+    },
+    {
+      "name": "AddvariableToJSON",
+      "category": "JSON",
+      "description": "Adds or updates a key-value pair in a dict variable. Creates the dict if it does not exist. Supports backtick template interpolation for both key and value.",
+      "parameters": [
+        {
+          "name": "Key",
+          "type": "variable",
+          "description": "Key name — literal, variable reference, or backtick template"
+        },
+        {
+          "name": "Value",
+          "type": "variable",
+          "description": "Value — literal, variable reference, or backtick template"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "variable",
+          "description": "Dict variable to write to"
+        }
+      ],
+      "returns": null,
+      "example": "AddvariableToJSON(name, Alice, payload)\nAddvariableToJSON(age, 30, payload)\nRequestPost(url, , , payload, response)"
+    },
+    {
+      "name": "variableFromJSON",
+      "category": "JSON",
+      "description": "Reads a value from a dict variable by key and stores it in a new variable.",
+      "parameters": [
+        {
+          "name": "SourceVariable",
+          "type": "var",
+          "description": "Dict variable to read from"
+        },
+        {
+          "name": "key",
+          "type": "value",
+          "description": "Key to look up"
+        },
+        {
+          "name": "TargetVariable",
+          "type": "var",
+          "description": "Variable to store the extracted value (None if key missing)"
+        }
+      ],
+      "returns": "Value at key stored in TargetVariable",
+      "example": "variableFromJSON(responseData, userId, extractedId)\naddResult(extractedId)"
+    }
+  ]
+}

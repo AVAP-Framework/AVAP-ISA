@@ -1,0 +1,1 @@
+{"rustc":9435880562281667341,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[12103731507705170012,"build_script_build",false,7731802608290506238]],"local":[{"RerunIfChanged":{"output":"debug/build/avap-isa-34b88c5dcb3ae916/output","paths":["opcodes.json"]}}],"rustflags":["-L","/usr/local/lib","-l","python3.11"],"config":0,"compile_kind":0}
