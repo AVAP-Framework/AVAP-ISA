@@ -2,6 +2,7 @@
 date: 2026-03-22
 status: Accepted
 project: Platon VM Kernel + AVAP ISA v2
+**Authors:** Rafael Ruiz (101OBEX, Corp - CTO)
 ---
 
 # ADR-008: Short-Circuit Boolean Evaluation in the Compiler

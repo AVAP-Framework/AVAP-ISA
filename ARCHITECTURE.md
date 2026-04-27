@@ -1,4 +1,5 @@
 # Architecture
+**Authors:** Rafael Ruiz (101OBEX, Corp - CTO)
 
 This document describes the internal design of `avap-isa` and how it integrates with the Platon kernel.
 
