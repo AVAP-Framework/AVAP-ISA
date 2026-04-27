@@ -1,4 +1,5 @@
 # Contributor Covenant Code of Conduct
+**Authors:** Rafael Ruiz (101OBEX, Corp - CTO)
 
 ## Our Pledge
 

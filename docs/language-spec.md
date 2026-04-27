@@ -1,6 +1,7 @@
 # AVAP Language Specification
 
 **Version 1.0.0**
+**Authors:** Rafael Ruiz (101OBEX, Corp - CTO)
 
 ---
 
