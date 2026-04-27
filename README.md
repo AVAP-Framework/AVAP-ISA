@@ -7,7 +7,6 @@
 [![PyO3](https://img.shields.io/badge/PyO3-0.20-blue.svg)](https://pyo3.rs)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org)
 
-**Author:** Rafael Ruiz (101OBEX, Corp - CTO)
 
 ---
 
